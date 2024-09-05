@@ -33,7 +33,7 @@ const answerTemplate = `You are a helpful and enthusiastic support bot who can a
  And direct the questioner to contact at 1234567890. Dont try to make up an answer. Always speak as if you were chatting to a friend. 
  context:{context} 
  question:{question} 
- answer:`;
+ answer:`;  
 const answerPrompt = PromptTemplate.fromTemplate(answerTemplate);
 
 async function combineDocuments(docs: { pageContent: string }[]): Promise<string> {
