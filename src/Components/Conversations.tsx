@@ -43,26 +43,49 @@ const Conversations: React.FC<ConversationsProps> = ({ userId, onLoadConversatio
     }
   };
 
+  const handleDeleteConversation = async (session_id: string) => {
+    try {
+      await axios.delete(`http://localhost:8000/conversations/${session_id}`);
+      setConversations(conversations.filter(conversation => conversation.session_id !== session_id));  // Remove deleted conversation from state
+    } catch (error) {
+      console.error('Error deleting conversation:', error);
+    }
+  };
+
   return (
     <div className="mb-4">
       <label htmlFor="conversationDropdown" className="block mb-2 text-gray-700">
         Previous Conversations
       </label>
-      <select
-        id="conversationDropdown"
-        value={selectedSession}
-        onChange={(e) => handleSelectConversation(e.target.value)}
-        className="w-full p-2 border border-gray-300 rounded-md"
-      >
-        <option value="">Select a conversation</option>
-        {conversations
-          .filter(conversation => conversation.query_type === 'human')  // Show only human initial messages
-          .map((conversation, index) => (
-            <option key={index} value={conversation.session_id}>
-              {conversation.query_text} - {new Date(conversation.timestamp).toLocaleString()}
-            </option>
-        ))}
-      </select>
+      <div className="relative w-full">
+        <select
+          id="conversationDropdown"
+          value={selectedSession}
+          onChange={(e) => handleSelectConversation(e.target.value)}
+          className="w-full p-2 border border-gray-300 rounded-md"
+        >
+          <option value="">Select a conversation</option>
+          {conversations
+            .filter(conversation => conversation.query_type === 'human')  // Show only human initial messages
+            .map((conversation, index) => (
+              <option key={index} value={conversation.session_id}>
+                {conversation.query_text} - {new Date(conversation.timestamp).toLocaleString()}
+              </option>
+            ))}
+        </select>
+        <div className="absolute right-0 top-0">
+          {conversations.map((conversation, index) => (
+            <button
+              key={index}
+              onClick={() => handleDeleteConversation(conversation.session_id)}
+              className="ml-4 bg-red-500 text-white p-1 rounded"
+              style={{ marginLeft: '-50px' }}  // Adjust position to fit inside dropdown
+            >
+              Delete
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 };
