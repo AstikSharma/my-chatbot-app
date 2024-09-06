@@ -22,7 +22,18 @@ const Conversations: React.FC<ConversationsProps> = ({ userId, onLoadConversatio
     const fetchConversations = async () => {
       try {
         const response = await axios.get(`http://localhost:8000/queries/${userId}`);
-        setConversations(response.data);
+        const fetchedConversations = response.data;
+
+        // Filter to only get the first human question from each session
+        const firstQuestions = fetchedConversations.reduce((acc: Conversation[], current: Conversation) => {
+          const existingSession = acc.find(conv => conv.session_id === current.session_id);
+          if (!existingSession && current.query_type === 'human') {
+            acc.push(current);  // Add only the first question of each session
+          }
+          return acc;
+        }, []);
+
+        setConversations(firstQuestions);  // Only set the first questions in the dropdown
       } catch (error) {
         console.error('Error fetching conversations:', error);
       }
@@ -65,13 +76,11 @@ const Conversations: React.FC<ConversationsProps> = ({ userId, onLoadConversatio
           className="w-full p-2 border border-gray-300 rounded-md"
         >
           <option value="">Select a conversation</option>
-          {conversations
-            .filter(conversation => conversation.query_type === 'human')  // Show only human initial messages
-            .map((conversation, index) => (
-              <option key={index} value={conversation.session_id}>
-                {conversation.query_text} - {new Date(conversation.timestamp).toLocaleString()}
-              </option>
-            ))}
+          {conversations.map((conversation, index) => (
+            <option key={index} value={conversation.session_id}>
+              {conversation.query_text} - {new Date(conversation.timestamp).toLocaleString()}
+            </option>
+          ))}
         </select>
         <div className="absolute right-0 top-0">
           {conversations.map((conversation, index) => (

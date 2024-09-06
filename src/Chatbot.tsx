@@ -13,7 +13,8 @@ const Chatbot: React.FC = () => {
   const [question, setQuestion] = useState<string>('');
   const [conversation, setConversation] = useState<Message[]>([]);
   const [sessionId, setSessionId] = useState<string>(uuidv4());  // Generate a new session ID by default
-  const userId = 'ac94f7ca-a370-4b32-bca9-48fd140d61d9'; // Mocked user ID
+  const userId =  'ac94f7ca-a370-4b32-bca9-48fd140d61d9' //Mongo User ID
+  // '66dae162ed3cee22bf79e403' //Postgres USER ID
 
   // Load saved conversation and set session ID
   const loadSavedConversation = (savedConversation: any[], selectedSessionId: string) => {
