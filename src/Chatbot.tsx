@@ -3,18 +3,47 @@ import { invokeChain } from './utils/api';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';  // Import the UUID generator
 import Conversations from "./Components/Conversations";
+import { useNavigate } from 'react-router-dom';
 
 interface Message {
   type: 'human' | 'ai';
   content: string;
 }
 
-const Chatbot: React.FC = () => {
+const Chatbot: React.FC = () => { 
+  const navigate = useNavigate();
+  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+  const [userId, setUserId] = useState<string>(''); // Track the authenticated user's ID
   const [question, setQuestion] = useState<string>('');
   const [conversation, setConversation] = useState<Message[]>([]);
   const [sessionId, setSessionId] = useState<string>(uuidv4());  // Generate a new session ID by default
-  const userId =  'ac94f7ca-a370-4b32-bca9-48fd140d61d9' //Mongo User ID
-  // '66dae162ed3cee22bf79e403' //Postgres USER ID
+
+  useEffect(() => {
+    // Redirect to login if token is missing
+    if (!token) { 
+      navigate('/login');
+    } else {
+      // Fetch user data using the token
+      fetchUserInfo();
+    }
+  }, [navigate, token]);
+
+  const fetchUserInfo = async () => {
+    try {
+      const response = await axios.get('http://localhost:8000/users/me', {
+        headers: {
+          'Authorization': `Bearer ${token}`,  // Send the token to retrieve user info
+        },
+      });
+
+      // Store the user ID from the backend response
+      setUserId(response.data.id);
+    } catch (err) {
+      console.error('Failed to fetch user info:', err);
+      localStorage.removeItem('token');
+      navigate('/login');  // Redirect to login if token is invalid or expired
+    }
+  };
 
   // Load saved conversation and set session ID
   const loadSavedConversation = (savedConversation: any[], selectedSessionId: string) => {
@@ -60,7 +89,7 @@ const Chatbot: React.FC = () => {
     try {
       // Prepare user message
       const userQueryData = {
-        user_id: userId,
+        user_id: userId,  // Use the userId fetched from backend
         query_text: userQuestion,
         session_id: sessionId,  // Use the current sessionId
         query_type: 'human',
@@ -72,6 +101,7 @@ const Chatbot: React.FC = () => {
       await axios.post('http://localhost:8000/queries/', userQueryData, {
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,  // Include token in requests
         },
       });
 
@@ -89,6 +119,7 @@ const Chatbot: React.FC = () => {
       await axios.post('http://localhost:8000/queries/', aiQueryData, {
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
       });
     } catch (err) {

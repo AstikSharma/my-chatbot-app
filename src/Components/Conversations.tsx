@@ -18,12 +18,21 @@ const Conversations: React.FC<ConversationsProps> = ({ userId, onLoadConversatio
   const [selectedSession, setSelectedSession] = useState<string>('');
 
   useEffect(() => {
-    // Fetch saved conversations from backend
     const fetchConversations = async () => {
+      const token = localStorage.getItem('token'); // Ensure token is retrieved
+      if (!token) {
+        console.error('No token found, user not authenticated.');
+        return;
+      }
+    
       try {
-        const response = await axios.get(`http://localhost:8000/queries/${userId}`);
+        const response = await axios.get(`http://localhost:8000/queries/${userId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`  // Add Authorization header with the token
+          }
+        });
         const fetchedConversations = response.data;
-
+    
         // Filter to only get the first human question from each session
         const firstQuestions = fetchedConversations.reduce((acc: Conversation[], current: Conversation) => {
           const existingSession = acc.find(conv => conv.session_id === current.session_id);
@@ -32,36 +41,60 @@ const Conversations: React.FC<ConversationsProps> = ({ userId, onLoadConversatio
           }
           return acc;
         }, []);
-
+    
         setConversations(firstQuestions);  // Only set the first questions in the dropdown
       } catch (error) {
         console.error('Error fetching conversations:', error);
       }
-    };
-
+    };    
+  
     fetchConversations();
   }, [userId]);
+  
 
   const handleSelectConversation = async (session_id: string) => {
+    const token = localStorage.getItem('token');  // Get token from localStorage
+  
+    if (!token) {
+      console.error('No token found, user not authenticated.');
+      return;
+    }
+  
     setSelectedSession(session_id);
-
+  
     try {
       // Fetch the conversation messages from the backend based on session_id
-      const response = await axios.get(`http://localhost:8000/conversations/${session_id}`);
+      const response = await axios.get(`http://localhost:8000/conversations/${session_id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`  // Include token in the Authorization header
+        }
+      });
       onLoadConversation(response.data, session_id);  // Load the conversation into the chat
     } catch (error) {
       console.error('Error loading conversation:', error);
     }
-  };
+  };  
 
   const handleDeleteConversation = async (session_id: string) => {
+    const token = localStorage.getItem('token');  // Retrieve the token from localStorage
+  
+    if (!token) {
+      console.error('No token found, user not authenticated.');
+      return;
+    }
+  
     try {
-      await axios.delete(`http://localhost:8000/conversations/${session_id}`);
+      await axios.delete(`http://localhost:8000/conversations/${session_id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`  // Add the Authorization header
+        }
+      });
       setConversations(conversations.filter(conversation => conversation.session_id !== session_id));  // Remove deleted conversation from state
     } catch (error) {
       console.error('Error deleting conversation:', error);
     }
   };
+  
 
   return (
     <div className="mb-4">
