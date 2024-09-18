@@ -1,82 +1,103 @@
-import React, { useState } from 'react';
-import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { Button } from "@/Components/ui/button";
+import { Input } from "@/Components/ui/input";
+import { Label } from "@/Components/ui/label";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/Components/ui/card";
+import { Alert, AlertDescription } from "@/Components/ui/alert";
+import { LockIcon, MailIcon } from 'lucide-react';
 
-const SignIn: React.FC = () => {
+export default function SignIn() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
-    try {
-      // Send form-encoded data using URLSearchParams
-      const formData = new URLSearchParams();
-      formData.append('username', email);
-      formData.append('password', password);
+    if (email && password) {
+      try {
+        const response = await fetch('http://localhost:5000/signin', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json', 
+          },
+          body: JSON.stringify({ email, password }),
+        });
 
-      const response = await axios.post('http://localhost:8000/login', formData, {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-      });
+        const data = await response.json();
 
-      const { access_token } = response.data;
-
-      // Store the JWT in localStorage for future authenticated requests
-      localStorage.setItem('token', access_token);
-
-      // Redirect to the chatbot or home page
-      navigate('/');
-    } catch (err) {
-      if (err.response && err.response.status === 401) {
-        setError('Invalid email or password.');
-      } else if (err.response && err.response.status === 404) {
-        // Email not found, redirect to the signup page
-        setError('Email not found. Redirecting to sign up...');
-        setTimeout(() => {
-          navigate('/signup');
-        }, 2000); // Redirect after 2 seconds
-      } else {
-        setError('An error occurred. Please try again.');
+        if (response.ok) {
+          console.log('Login successful', data);
+          // Save the token, redirect, etc.
+        } else {
+          setError(data.message || 'Login failed. Please try again.');
+        }
+      } catch (error) {
+        setError('Something went wrong. Please try again.');
+      } finally {
+        setLoading(false);
       }
+    } else {
+      setError('Please enter both email and password.');
+      setLoading(false);
     }
   };
 
   return (
-    <div className="container mx-auto max-w-md py-8">
-      <h2 className="text-2xl font-bold mb-6">Sign In</h2>
-      {error && <p className="text-red-500">{error}</p>}
-      <form onSubmit={handleSubmit}>
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700">Email</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded"
-            required
-          />
-        </div>
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700">Password</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded"
-            required
-          />
-        </div>
-        <button type="submit" className="w-full p-2 bg-blue-500 text-white rounded">
-          Sign In
-        </button>
-      </form>
+    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold">Sign In</CardTitle>
+          <CardDescription>Enter your email and password to access your account.</CardDescription>
+        </CardHeader>
+        <form onSubmit={handleSubmit}>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <div className="relative">
+                <MailIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="pl-10"
+                  required
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <div className="relative">
+                <LockIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pl-10"
+                  required
+                />
+              </div>
+            </div>
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+          </CardContent>
+          <CardFooter>
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? 'Signing In...' : 'Sign In'}
+            </Button>
+          </CardFooter>
+        </form>
+      </Card>
     </div>
   );
-};
-
-export default SignIn;
+}C
