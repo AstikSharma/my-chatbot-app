@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from "@/Components/ui/button";
 import { Input } from "@/Components/ui/input";
 import { Label } from "@/Components/ui/label";
@@ -9,23 +10,21 @@ export default function SignUp() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    const [firstname, lastname] = name.split(' ');
-
     try {
-      const response = await fetch('http://localhost:5000/signup', {
+      const response = await fetch('http://localhost:8000/users/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-        }, 
+        },
         body: JSON.stringify({
-          firstname,
-          lastname,
+          name,
           email,
           password,
         }),
@@ -35,9 +34,10 @@ export default function SignUp() {
 
       if (response.ok) {
         console.log('User created successfully', data);
-        // Redirect or show success message
+        localStorage.setItem('token', data.access_token); // Save token
+        navigate('/'); // Redirect to chatbot after sign-up
       } else {
-        setError(data.message || 'Signup failed. Please try again.');
+        setError(data.detail || 'Signup failed. Please try again.');
       }
     } catch (error) {
       setError('Something went wrong. Please try again.');
@@ -53,22 +53,19 @@ export default function SignUp() {
           <h2 className="mt-6 text-3xl font-extrabold text-gray-900">Create your account</h2>
           <p className="mt-2 text-sm text-gray-600">
             Already have an account?{' '}
-            <a href="/login" className="font-medium text-primary hover:text-primary-dark">
+            <a href="/signin" className="font-medium text-primary hover:text-primary-dark">
               Log in
             </a>
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm space-y-4">
+          <div className="space-y-4">
             <div>
-              <Label htmlFor="name" className="sr-only">
-                Full Name
-              </Label>
+              <Label htmlFor="name">Full Name</Label>
               <Input
                 id="name"
                 name="name"
                 type="text"
-                autoComplete="name"
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -76,14 +73,11 @@ export default function SignUp() {
               />
             </div>
             <div>
-              <Label htmlFor="email-address" className="sr-only">
-                Email address
-              </Label>
+              <Label htmlFor="email-address">Email address</Label>
               <Input
                 id="email-address"
                 name="email"
                 type="email"
-                autoComplete="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -91,14 +85,11 @@ export default function SignUp() {
               />
             </div>
             <div>
-              <Label htmlFor="password" className="sr-only">
-                Password
-              </Label>
+              <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
                 name="password"
                 type="password"
-                autoComplete="new-password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -107,15 +98,11 @@ export default function SignUp() {
             </div>
           </div>
 
-          {error && (
-            <div className="text-red-600 text-sm">{error}</div>
-          )}
+          {error && <div className="text-red-600 text-sm">{error}</div>}
 
-          <div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Signing Up...' : 'Sign Up'}
-            </Button>
-          </div>
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? 'Signing Up...' : 'Sign Up'}
+          </Button>
         </form>
       </div>
     </div>

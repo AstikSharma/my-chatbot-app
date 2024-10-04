@@ -40,3 +40,61 @@
 .read-the-docs {
   color: #888;
 }
+.smooth-message-box {
+  transition: all 0.3s ease;
+}
+
+.smooth-input-transition {
+  transition: background-color 0.3s ease, border 0.3s ease;
+}
+
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+  }
+}
+
+.fade-in-message {
+  opacity: 0;
+  animation: fadeIn 1s forwards;
+}
+
+.typing-dots {
+  display: flex;
+  gap: 4px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: black;
+  animation: dot-blink 1.5s infinite ease-in-out;
+}
+
+.dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes dot-blink {
+  0%,
+  100% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Ensure this class applies a 50px border radius */
+.rounded-message {
+  border-radius: 25px;
+  padding: 10px 20px; /* Optional: Adjust padding for better spacing */
+  max-width: 70%; /* Optional: Limit the width of the message bubble */
+  display: inline-block;
+  word-wrap: break-word;
+}

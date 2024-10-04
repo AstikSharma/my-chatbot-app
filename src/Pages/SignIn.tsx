@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from "@/Components/ui/button";
 import { Input } from "@/Components/ui/input";
 import { Label } from "@/Components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/Components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/Components/ui/card";
 import { Alert, AlertDescription } from "@/Components/ui/alert";
 import { LockIcon, MailIcon } from 'lucide-react';
 
@@ -11,37 +12,38 @@ export default function SignIn() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    if (email && password) {
-      try {
-        const response = await fetch('http://localhost:5000/signin', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json', 
-          },
-          body: JSON.stringify({ email, password }),
-        });
+    try {
+      const formData = new FormData();
+      formData.append('username', email); // Backend expects 'username'
+      formData.append('password', password);
 
-        const data = await response.json();
+      const response = await fetch('http://localhost:8000/login', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+        },
+        body: formData,
+      });
 
-        if (response.ok) {
-          console.log('Login successful', data);
-          // Save the token, redirect, etc.
-        } else {
-          setError(data.message || 'Login failed. Please try again.');
-        }
-      } catch (error) {
-        setError('Something went wrong. Please try again.');
-      } finally {
-        setLoading(false);
+      const data = await response.json();
+
+      if (response.ok) {
+        console.log('Login successful', data);
+        localStorage.setItem('token', data.access_token); // Save token
+        navigate('/'); // Redirect to chatbot
+      } else {
+        setError(data.detail || 'Login failed. Please try again.');
       }
-    } else {
-      setError('Please enter both email and password.');
+    } catch (error) {
+      setError('Something went wrong. Please try again.');
+    } finally {
       setLoading(false);
     }
   };
@@ -51,7 +53,6 @@ export default function SignIn() {
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="text-2xl font-bold">Sign In</CardTitle>
-          <CardDescription>Enter your email and password to access your account.</CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
@@ -62,11 +63,11 @@ export default function SignIn() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="you@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-10"
                   required
+                  placeholder="you@example.com"
                 />
               </div>
             </div>
@@ -77,11 +78,11 @@ export default function SignIn() {
                 <Input
                   id="password"
                   type="password"
-                  placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-10"
                   required
+                  placeholder="••••••••"
                 />
               </div>
             </div>
@@ -100,4 +101,4 @@ export default function SignIn() {
       </Card>
     </div>
   );
-}C
+}
