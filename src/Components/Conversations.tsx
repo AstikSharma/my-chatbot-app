@@ -10,7 +10,7 @@ interface Conversation {
 }
 
 interface ConversationsProps {
-  userId: string;
+  userId: string;  // Ensure userId is passed and used properly
   onLoadConversation: (conversation: Conversation[], sessionId: string) => void;
 }
 
@@ -20,38 +20,45 @@ const Conversations: React.FC<ConversationsProps> = ({ userId, onLoadConversatio
   const [selectedSession, setSelectedSession] = useState<string>('');
 
   useEffect(() => {
-    const fetchConversations = async () => {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        console.error('No token found, user not authenticated.');
-        return;
-      } 
-
-      try {
-        const response = await axios.get(`http://localhost:8000/queries/${userId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-        const fetchedConversations = response.data;
-
-        // Filter to get the first human question from each session
-        const firstQuestions = fetchedConversations.reduce((acc: Conversation[], current: Conversation) => {
-          const existingSession = acc.find(conv => conv.session_id === current.session_id);
-          if (!existingSession && current.query_type === 'human') {
-            acc.push(current);  // Add only the first question of each session
-          }
-          return acc;
-        }, []);
-
-        setConversations(firstQuestions);
-      } catch (error) {
-        console.error('Error fetching conversations:', error);
-      }
-    };
-
-    fetchConversations();
+    if (userId) {  // Only attempt to fetch conversations if userId is available
+      fetchConversations();
+    }
   }, [userId]);
+
+  const fetchConversations = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.error('No token found, user not authenticated.');
+      return;
+    } 
+
+    if (!userId) {
+      console.error('No userId found.');
+      return;
+    }
+
+    try {
+      const response = await axios.get(`http://localhost:8000/queries/${userId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      const fetchedConversations = response.data;
+
+      // Filter to get the first human question from each session
+      const firstQuestions = fetchedConversations.reduce((acc: Conversation[], current: Conversation) => {
+        const existingSession = acc.find(conv => conv.session_id === current.session_id);
+        if (!existingSession && current.query_type === 'human') {
+          acc.push(current);  // Add only the first question of each session
+        }
+        return acc;
+      }, []);
+
+      setConversations(firstQuestions);
+    } catch (error) {
+      console.error('Error fetching conversations:', error);
+    }
+  };
 
   const handleSelectConversation = async (session_id: string) => {
     const token = localStorage.getItem('token');

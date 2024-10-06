@@ -15,19 +15,18 @@ interface Message {
 const Chatbot: React.FC = () => {
   const navigate = useNavigate();
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
-  const [userId, setUserId] = useState<string>(''); // Track the authenticated user's ID
+  const [userId, setUserId] = useState<string | null>(null); // Allow null to handle unset state
   const [question, setQuestion] = useState<string>('');
   const [conversation, setConversation] = useState<Message[]>([]);
-  const [sessionId, setSessionId] = useState<string>(uuidv4());  // Generate a new session ID by default
-  const [isTyping, setIsTyping] = useState<boolean>(false);  // Manage bot typing animation
+  const [sessionId, setSessionId] = useState<string>(uuidv4());
+  const [isTyping, setIsTyping] = useState<boolean>(false);
 
-  // Check for token and redirect if not present
   useEffect(() => {
     const checkToken = async () => {
       if (!token) {
-        navigate('/login'); // Redirect to login if no token is found
+        navigate('/login');
       } else {
-        await fetchUserInfo(); // Fetch user information if token exists
+        await fetchUserInfo(); 
       }
     };
     checkToken();
@@ -40,10 +39,10 @@ const Chatbot: React.FC = () => {
           Authorization: `Bearer ${token}`,
         },
       });
-      setUserId(response.data.id);
+      setUserId(response.data.id); // Set the userId once fetched
     } catch (error) {
       console.error('Error fetching user info:', error);
-      localStorage.removeItem('token'); // Clear invalid token
+      localStorage.removeItem('token');
       navigate('/login');
     }
   };
@@ -55,44 +54,45 @@ const Chatbot: React.FC = () => {
     }));
 
     setConversation(formattedConversation);
-    setSessionId(selectedSessionId);  // Persist the session ID for continued messages
+    setSessionId(selectedSessionId);
   };
 
   const handleNewChat = () => {
-    setConversation([]);  // Clear the conversation
-    setSessionId(uuidv4());  // Generate a new session ID
+    setConversation([]);
+    setSessionId(uuidv4());
   };
 
-const handleSubmit = async (e: FormEvent) => {
-  e.preventDefault();
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
 
-  const humanMessage: Message = { type: 'human', content: question };
-  const updatedConversation = [...conversation, humanMessage];
-  setConversation(updatedConversation);
-  setIsTyping(true);  // Set the bot as typing
+    const humanMessage: Message = { type: 'human', content: question };
+    const updatedConversation = [...conversation, humanMessage];
+    setConversation(updatedConversation);
+    setIsTyping(true);
 
-  try {
-    // Invoke the chain using LangGraph's invokeChain
-    const aiResponse: string = await invokeChain(question);
+    try {
+      const aiResponse: string = await invokeChain(question);
 
-    const aiMessage: Message = { type: 'ai', content: aiResponse };
-    const finalConversation = [...updatedConversation, aiMessage];
-    setConversation(finalConversation);
-  } catch (err) {
-    console.error("Error fetching AI response:", err);
-    const aiMessage: Message = { type: 'ai', content: "Sorry, something went wrong." };
-    setConversation([...updatedConversation, aiMessage]);
-  } finally {
-    setIsTyping(false);  // Stop the bot typing animation
-    setQuestion('');  // Clear the input field
-  }
-
-  // Save conversation to backend
-  await saveConversationToBackend(question, aiResponse);
-};
-
+      const aiMessage: Message = { type: 'ai', content: aiResponse };
+      const finalConversation = [...updatedConversation, aiMessage];
+      setConversation(finalConversation);
+      await saveConversationToBackend(question, aiResponse);
+    } catch (err) {
+      console.error("Error fetching AI response:", err);
+      const aiMessage: Message = { type: 'ai', content: "Sorry, something went wrong." };
+      setConversation([...updatedConversation, aiMessage]);
+    } finally {
+      setIsTyping(false);
+      setQuestion('');
+    }
+  };
 
   const saveConversationToBackend = async (userQuestion: string, aiResponse: string) => {
+    if (!userId) {
+      console.error('Cannot save conversation, userId is missing.');
+      return;
+    }
+
     try {
       const userQueryData = {
         user_id: userId,
@@ -107,7 +107,7 @@ const handleSubmit = async (e: FormEvent) => {
       await axios.post('http://localhost:8000/queries/', userQueryData, {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -124,7 +124,7 @@ const handleSubmit = async (e: FormEvent) => {
       await axios.post('http://localhost:8000/queries/', aiQueryData, {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
     } catch (err) {
@@ -134,7 +134,6 @@ const handleSubmit = async (e: FormEvent) => {
 
   return (
     <div className="flex flex-col h-[70vh] w-[30vw] bg-white shadow-lg rounded-lg mb-0 pb-0">
-      {/* Header */}
       <div className="flex justify-between items-center bg-black p-4 rounded-t-lg text-white">
         <div className="flex items-center space-x-2">
           <div className="bg-white p-2 rounded-full">
@@ -147,23 +146,24 @@ const handleSubmit = async (e: FormEvent) => {
         </div>
 
         <div className="flex items-center space-x-2">
-          {/* Dropdown Icon */}
-          <Conversations userId={userId} onLoadConversation={loadSavedConversation} />
-          {/* New Chat + Icon */}
+          {userId && (  // Only render if userId is set
+            <Conversations userId={userId} onLoadConversation={loadSavedConversation} />
+          )}
           <button onClick={handleNewChat} className="text-white text-lg">
             <FaPlus />
           </button>
-          {/* Logout Button */}
-          <button onClick={() => {
-            localStorage.removeItem('token');
-            navigate('/login');
-          }} className="bg-gray-700 px-4 py-1 rounded-lg text-white">
+          <button
+            onClick={() => {
+              localStorage.removeItem('token');
+              navigate('/login');
+            }}
+            className="bg-gray-700 px-4 py-1 rounded-lg text-white"
+          >
             Logout
           </button>
         </div>
       </div>
 
-      {/* Chat Area */}
       <div className="flex-1 overflow-y-auto p-4 bg-gray-200 mb-0 pb-0">
         {conversation.length === 0 && (
           <div className="flex items-center justify-center h-full">
@@ -171,14 +171,8 @@ const handleSubmit = async (e: FormEvent) => {
           </div>
         )}
         {conversation.map((msg, index) => (
-          <div
-            key={index}
-            className={`mb-4 ${msg.type === 'human' ? 'text-right' : 'text-left'} fade-in-message`}
-          >
-            <div
-              className={`inline-block p-3 rounded-message ${msg.type === 'human' ? 'bg-black text-white' : 'bg-white text-black border border-gray-400'
-                } smooth-message-box`}
-            >
+          <div key={index} className={`mb-4 ${msg.type === 'human' ? 'text-right' : 'text-left'} fade-in-message`}>
+            <div className={`inline-block p-3 rounded-message ${msg.type === 'human' ? 'bg-black text-white' : 'bg-white text-black border border-gray-400'} smooth-message-box`}>
               {msg.content}
             </div>
           </div>
@@ -196,7 +190,6 @@ const handleSubmit = async (e: FormEvent) => {
         )}
       </div>
 
-      {/* Input Area */}
       <form onSubmit={handleSubmit} className="flex p-4 bg-gray-100 border-t border-gray-300 mb-0 pb-0">
         <input
           type="text"
